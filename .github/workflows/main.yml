@@ -1,4 +1,4 @@
-name: VPS via SSH
+name: VPS via SSH (Ngrok)
 
 on: workflow_dispatch
 
@@ -6,25 +6,35 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Cài đặt ngrok
+      - name: Cài đặt ngrok & SSH
         run: |
-          curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
-          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
-          sudo apt update && sudo apt install ngrok
+          sudo apt update
+          sudo apt install -y openssh-server curl
+          sudo systemctl enable ssh
+          sudo systemctl start ssh
 
-      - name: Tạo tài khoản root
+      - name: Tạo user SSH
         run: |
           sudo useradd -m root2
           echo 'root2:toor' | sudo chpasswd
           sudo usermod -aG sudo root2
 
-      - name: Khởi động SSH và expose với ngrok
+      - name: Cài & chạy ngrok
         run: |
-          sudo apt update
-          sudo apt install -y openssh-server
-          sudo systemctl start ssh
+          curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
+          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
+          sudo apt update && sudo apt install -y ngrok
           ngrok config add-authtoken 2Upga3OGu0Wf6HeqW9Vgmoa8ptm_6UWLqzoCw479FvW2LMZFB
           nohup ngrok tcp 22 &
 
-      - name: In địa chỉ SSH
-        run: sleep 30 && curl -s http://127.0.0.1:4040/api/tunnels
+      - name: In link SSH
+        run: |
+          echo "Đợi ngrok khởi động..."
+          sleep 10
+          curl -s http://127.0.0.1:4040/api/tunnels
+
+      - name: Giữ container sống
+        run: |
+          echo "VPS sẵn sàng! Kết nối ngay. Sống 6 tiếng."
+          sleep 6h
+         
