@@ -1,0 +1,30 @@
+name: VPS via SSH
+
+on: workflow_dispatch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cài đặt ngrok
+        run: |
+          curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
+          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
+          sudo apt update && sudo apt install ngrok
+
+      - name: Tạo tài khoản root
+        run: |
+          sudo useradd -m root2
+          echo 'root2:toor' | sudo chpasswd
+          sudo usermod -aG sudo root2
+
+      - name: Khởi động SSH và expose với ngrok
+        run: |
+          sudo apt update
+          sudo apt install -y openssh-server
+          sudo systemctl start ssh
+          ngrok config add-authtoken YOUR_NGROK_TOKEN
+          nohup ngrok tcp 22 &
+
+      - name: In địa chỉ SSH
+        run: sleep 30 && curl -s http://127.0.0.1:4040/api/tunnels
